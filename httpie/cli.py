@@ -450,6 +450,23 @@ auth.add_argument(
     )),
 )
 
+auth.add_argument(
+    '--auth-qiniu',
+    default='',
+    metavar='AUTH_CONFIG_FILE_PATH_FOR_QINIU',
+    help="""
+    The configure file --auth-types provided by qiniu.com will use.
+    e.g.
+
+    {
+        "auth": "qiniu/mac",
+        "access_key": "access_key",
+        "secret_key": "secret_key"
+    }
+
+    Will automatically apply --auth-type.
+    """
+)
 
 #######################################################################
 # Network

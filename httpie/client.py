@@ -140,6 +140,10 @@ def get_requests_kwargs(args, base_headers=None):
         auth_plugin = plugin_manager.get_auth_plugin(args.auth_type)()
         credentials = auth_plugin.get_auth(args.auth.key, args.auth.value)
 
+    if args.auth_qiniu_config:
+        auth_plugin = plugin_manager.get_auth_plugin(args.auth_qiniu_config["auth"])()
+        credentials = auth_plugin.get_auth(args.auth_qiniu_config["access_key"], args.auth_qiniu_config["secret_key"])
+
     cert = None
     if args.cert:
         cert = args.cert

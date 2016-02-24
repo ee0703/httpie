@@ -1,4 +1,19 @@
 ****************************************
+Development Purpose Only: Add --auth-qiniu
+****************************************
+
+* Install by ``pip install --upgrade https://github.com/kirk-enterprise/httpie/tarball/master``
+* Use by ``http --auth-qiniu=~/.qiniu/my-aksk.conf https://some-qiniu-api/using-aksk-auth``
+
+.. code-block:: json
+
+    {
+        "access_key": "<ACCESS_KEY>",
+        "secret_key": "<SECRET_KEY>",
+        "auth": "qiniu/mac"
+    }
+
+****************************************
 HTTPie: a CLI, cURL-like tool for humans
 ****************************************
 

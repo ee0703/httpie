@@ -8,6 +8,7 @@ import re
 import errno
 import mimetypes
 import getpass
+import json
 from io import BytesIO
 from collections import namedtuple, Iterable
 # noinspection PyCompatibility
@@ -165,6 +166,7 @@ class HTTPieArgumentParser(ArgumentParser):
             else:
                 self.args.url = scheme + self.args.url
         self._process_auth()
+        self._process_auth_qiniu()
 
         return self.args
 
@@ -239,6 +241,48 @@ class HTTPieArgumentParser(ArgumentParser):
                 sep=SEP_CREDENTIALS,
                 orig=SEP_CREDENTIALS.join([username, password])
             )
+
+    def _process_auth_qiniu(self):
+        """
+        Load configure file for auth of qiniu.com.
+
+        """
+        self.args.auth_qiniu_config = None
+        if len(self.args.auth_qiniu) > 0:
+            # NOTE dirty fix ~
+            path = self.args.auth_qiniu.replace("~", os.environ['HOME'])
+            with open(path, 'rt') as f:
+                try:
+                    data = json.load(f)
+                except ValueError as e:
+                    raise ValueError(
+                        'Invalid JSON: %s [%s]' %
+                        (str(e), self.args.auth_qiniu)
+                    )
+                self.args.auth_qiniu_config = self._validate_auth_qiniu_conf(data)
+                del self.args.auth_qiniu
+
+    def _validate_auth_qiniu_conf(self, data):
+        """
+        Validate configure file for auth of qiniu.com.
+
+        """
+        auth = data.setdefault("auth", "qiniu/mac")
+        if auth not in ("qiniu/mac"):
+            raise ValueError(
+                'Invalid auth: %s' %
+                auth
+            )
+        for k in (
+            "access_key",
+            "secret_key",
+            ):
+            if k not in data:
+                raise ValueError(
+                    'Missing: %s' %
+                    k
+                )
+        return data
 
     def _apply_no_options(self, no_options):
         """For every `--no-OPTION` in `no_options`, set `args.OPTION` to
