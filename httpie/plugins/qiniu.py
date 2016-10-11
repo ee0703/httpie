@@ -4,6 +4,7 @@ import hmac
 import sys
 from base64 import urlsafe_b64encode
 from hashlib import sha1
+from datetime import datetime
 from requests.auth import AuthBase
 from httpie.plugins.base import AuthPlugin
 
@@ -84,9 +85,12 @@ class QiniuMacAuthSign(object):
     Attributes:
         __access_key
         __secret_key
+
+    http://kirk-docs.qiniu.com/apidocs/#TOC_325b437b89e8465e62e958cccc25c63f
     """
 
     def __init__(self, access_key, secret_key):
+        self.qiniu_header_prefix = "X-Qiniu-"
         self.__checkKey(access_key, secret_key)
         self.__access_key = access_key
         self.__secret_key = b(secret_key)
@@ -96,11 +100,12 @@ class QiniuMacAuthSign(object):
         hashed = hmac.new(self.__secret_key, data, sha1)
         return urlsafe_base64_encode(hashed.digest())
 
-    def token_of_request(self, method, host, url, content_type=None, body=None):
+    def token_of_request(self, method, host, url, qheaders, content_type=None, body=None):
         """
         <Method> <PathWithRawQuery>
         Host: <Host>
         Content-Type: <ContentType>
+        [<X-Qiniu-*> Headers]
 
         [<Body>] #这里的 <Body> 只有在 <ContentType> 存在且不为 application/octet-stream 时才签进去。
 
@@ -119,13 +124,22 @@ class QiniuMacAuthSign(object):
         data = ''.join(["%s %s"%(method, path_with_query) , "\n", "Host: %s"%host, "\n"])
 
         if content_type:
-            data += "Content-Type: %s"%s(content_type) + "\n\n"
-            if content_type != "application/octet-stream" and body:
-                data += body
-        else:
-            data += "\n"
+            data += "Content-Type: %s"%s(content_type) + "\n"
+
+        data += qheaders
+        data += "\n"
+
+        if content_type and content_type != "application/octet-stream" and body:
+            data += body
 
         return '{0}:{1}'.format(self.__access_key, self.__token(data))
+
+    def qiniu_headers(self, headers):
+        res = ""
+        for key in headers:
+            if key.startswith(self.qiniu_header_prefix):
+                res += key+": %s\n"%s(headers.get(key))
+        return res
 
     @staticmethod
     def __checkKey(access_key, secret_key):
@@ -139,7 +153,8 @@ class QiniuMacAuth(AuthBase):
     def __call__(self, r):
         token = self.auth.token_of_request(
             r.method, r.headers.get('Host', None),
-            r.url, r.headers.get('Content-Type', None),
+            r.url, self.auth.qiniu_headers(r.headers),
+            r.headers.get('Content-Type', None),
             r.body
             )
         r.headers['Authorization'] = 'Qiniu {0}'.format(token)
@@ -153,3 +168,107 @@ class QiniuMacAuthPlugin(AuthPlugin):
 
     def get_auth(self, ak, sk):
         return QiniuMacAuth(QiniuMacAuthSign(ak, sk))
+
+class PandoraMacSign(object):
+    """
+    Sign Requests
+
+    Attributes:
+        __access_key
+        __secret_key
+
+    Diff to qiniu/mac:
+
+    1. Do not Sign <Body>
+    2. Do not Sign Header["Host"]
+    3. Alway add Header["Date"]: golang.http.TimeFormat and Sign Header["Date"]
+
+        http.TimeFormat is the time format to use when generating times in HTTP headers.
+        It is like time.RFC1123 but hard-codes GMT as the time zone.
+        The time being formatted must be in UTC for Format to generate the correct format.
+
+    4. Sign Header["Content-MD5"] if exists (Optional)
+    4. Sign Header["X-Qiniu-*"] if exists (Optional)
+
+    """
+
+    def __init__(self, access_key, secret_key):
+        self.qiniu_header_prefix = "X-Qiniu-"
+        self.__checkKey(access_key, secret_key)
+        self.__access_key = access_key
+        self.__secret_key = b(secret_key)
+
+    def __token(self, data):
+        data = b(data)
+        hashed = hmac.new(self.__secret_key, data, sha1)
+        return urlsafe_base64_encode(hashed.digest())
+
+    def token_of_request(self, method, cmd5, ctype, date, url, qheaders):
+        """
+        <Method>
+        Header["Content-MD5"]
+        Header["Content-Type"]
+        Header["Date"]
+
+        Header["X-Qiniu-1"]
+        Header["X-Qiniu-1"]<PathWithSomeQuery>
+        """
+
+        parsed_url = urlparse(url)
+        netloc = parsed_url.netloc
+        path = parsed_url.path
+        query = parsed_url.query
+        path_with_query = path
+
+        if query != '':
+            path_with_query = ''.join([path_with_query, '?', query])
+
+        data = method
+        data += "\n%s"%s(cmd5)
+        data += "\n%s"%s(ctype)
+        data += "\n%s\n"%s(date)
+        data += qheaders
+        # TODO only path now
+        data += path
+
+        return '{0}:{1}'.format(self.__access_key, self.__token(data))
+
+    def qiniu_headers(self, headers):
+        res = ""
+        for key in headers:
+            if key.startswith(self.qiniu_header_prefix):
+                res += "\n" + key.lower()+":%s"%s(headers.get(key))
+        return res
+
+    @staticmethod
+    def __checkKey(access_key, secret_key):
+        if not (access_key and secret_key):
+            raise ValueError('PandoraMacSign : Invalid key')
+
+class PandoraMacAuth(AuthBase):
+    def __init__(self, auth):
+        self.auth = auth
+        self.date_format = "%a, %d %b %Y %H:%M:%S GMT"
+
+    def __call__(self, r):
+        now = datetime.utcnow().strftime(self.date_format)
+        token = self.auth.token_of_request(
+            r.method,
+            r.headers.get('Content-MD5', ""),
+            r.headers.get('Content-Type', ""),
+            now,
+            r.url,
+            self.auth.qiniu_headers(r.headers)
+            )
+        r.headers['Authorization'] = 'Pandora {0}'.format(token)
+        r.headers['Date'] = now
+        return r
+
+class PandoraMacAuthPlugin(AuthPlugin):
+
+    name = 'Pandora Mac HTTP auth'
+    auth_type = 'pandora/mac'
+    package_name = 'qiniu.com'
+
+    def get_auth(self, ak, sk):
+        return PandoraMacAuth(PandoraMacSign(ak, sk))
