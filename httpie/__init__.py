@@ -3,7 +3,7 @@ HTTPie - a CLI, cURL-like tool for humans.
 
 """
 __author__ = 'Jakub Roztocil'
-__version__ = '1.0.0-dev-qiniu'
+__version__ = '1.0.1-dev-qiniu'
 __licence__ = 'BSD'
 
 

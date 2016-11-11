@@ -78,6 +78,82 @@ def urlsafe_base64_encode(data):
     ret = urlsafe_b64encode(b(data))
     return s(ret)
 
+class QboxMacAuthSign(object):
+    """
+    Sign Requests
+
+    Attributes:
+        __access_key
+        __secret_key
+
+    http://developer.qiniu.com/article/developer/security/access-token.html
+    https://github.com/qiniu/python-sdk/blob/master/qiniu/auth.py
+    """
+
+    def __init__(self, access_key, secret_key):
+        self.__checkKey(access_key, secret_key)
+        self.__access_key = access_key
+        self.__secret_key = b(secret_key)
+
+    def __token(self, data):
+        data = b(data)
+        hashed = hmac.new(self.__secret_key, data, sha1)
+        return urlsafe_base64_encode(hashed.digest())
+
+    def token_of_request(self, url, body=None, content_type=None):
+        """带请求体的签名（本质上是管理凭证的签名）
+        Args:
+            url:          待签名请求的url
+            body:         待签名请求的body
+            content_type: 待签名请求的body的Content-Type
+        Returns:
+            管理凭证
+        """
+        parsed_url = urlparse(url)
+        query = parsed_url.query
+        path = parsed_url.path
+        data = path
+        if query != '':
+            data = ''.join([data, '?', query])
+        data = ''.join([data, "\n"])
+
+        if body:
+            mimes = [
+                'application/x-www-form-urlencoded'
+            ]
+            if content_type in mimes:
+                data += body
+
+        return '{0}:{1}'.format(self.__access_key, self.__token(data))
+
+
+    @staticmethod
+    def __checkKey(access_key, secret_key):
+        if not (access_key and secret_key):
+            raise ValueError('QboxMacAuthSign : Invalid key')
+
+class QboxMacAuth(AuthBase):
+    def __init__(self, auth):
+        self.auth = auth
+
+    def __call__(self, r):
+        token = None
+        if r.body is not None and r.headers['Content-Type'] == 'application/x-www-form-urlencoded':
+            token = self.auth.token_of_request(r.url, r.body, 'application/x-www-form-urlencoded')
+        else:
+            token = self.auth.token_of_request(r.url)
+        r.headers['Authorization'] = 'QBox {0}'.format(token)
+        return r
+
+class QboxMacAuthPlugin(AuthPlugin):
+
+    name = 'Qbox Mac HTTP auth'
+    auth_type = 'qbox/mac'
+    package_name = 'qiniu.com'
+
+    def get_auth(self, ak, sk):
+        return QboxMacAuth(QboxMacAuthSign(ak, sk))
+
 class QiniuMacAuthSign(object):
     """
     Sign Requests
