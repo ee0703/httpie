@@ -470,6 +470,12 @@ auth.add_argument(
         "secret_key": "secret_key"
     }
 
+    {
+        "auth": "qbox/mac",
+        "access_key": "access_key",
+        "secret_key": "secret_key"
+    }
+
     Will automatically apply --auth-type.
     """
 )

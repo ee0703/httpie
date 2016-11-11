@@ -3,7 +3,7 @@ Development Purpose Only: Add --auth-qiniu
 ****************************************
 
 * Install by ``pip install --upgrade https://github.com/kirk-enterprise/httpie/tarball/master``
-* Use by ``http --auth-qiniu=~/.qiniu/my-aksk.conf https://some-api-host/using-aksk/with-qiniu-mac/or-with-pandora-mac``
+* Use by ``http --auth-qiniu=~/.qiniu/my-aksk.conf https://some-api-host/using-aksk/with-qiniu-mac/or-with-qbox-mac/or-with-pandora-mac``
 
 .. code-block:: json
 
@@ -11,6 +11,12 @@ Development Purpose Only: Add --auth-qiniu
         "access_key": "<ACCESS_KEY>",
         "secret_key": "<SECRET_KEY>",
         "auth": "qiniu/mac"
+    }
+
+    {
+        "access_key": "<ACCESS_KEY>",
+        "secret_key": "<SECRET_KEY>",
+        "auth": "qbox/mac"
     }
 
     {
@@ -1523,4 +1529,3 @@ See `LICENSE <https://github.com/jkbrzt/httpie/blob/master/LICENSE>`_.
 .. |gitter| image:: https://badges.gitter.im/jkbrzt/httpie.svg
     :target: https://gitter.im/jkbrzt/httpie
     :alt: Chat on Gitter
-

@@ -268,7 +268,7 @@ class HTTPieArgumentParser(ArgumentParser):
 
         """
         auth = data.setdefault("auth", "qiniu/mac")
-        if auth not in ("qiniu/mac", "pandora/mac"):
+        if auth not in ("qiniu/mac", "pandora/mac", "qbox/mac"):
             raise ValueError(
                 'Invalid auth: %s' %
                 auth
