@@ -265,7 +265,7 @@ class HTTPieArgumentParser(ArgumentParser):
             data = dict()
             data['access_key'] = self.args.ak
             data['secret_key'] = self.args.sk
-            data['auth'] = self.args.typo
+            data['auth'] = self.args.auth_qiniu_type
             self.args.auth_qiniu_config = self._validate_auth_qiniu_conf(data)
             del self.args.ak
             del self.args.sk
