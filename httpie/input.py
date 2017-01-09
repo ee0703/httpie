@@ -261,6 +261,14 @@ class HTTPieArgumentParser(ArgumentParser):
                     )
                 self.args.auth_qiniu_config = self._validate_auth_qiniu_conf(data)
                 del self.args.auth_qiniu
+        elif len(self.args.ak) and len(self.args.sk) > 0:
+            data = dict()
+            data['access_key'] = self.args.ak
+            data['secret_key'] = self.args.sk
+            data['auth'] = self.args.typo
+            self.args.auth_qiniu_config = self._validate_auth_qiniu_conf(data)
+            del self.args.ak
+            del self.args.sk
 
     def _validate_auth_qiniu_conf(self, data):
         """
