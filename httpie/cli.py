@@ -480,6 +480,24 @@ auth.add_argument(
     """
 )
 
+auth.add_argument(
+    '--ak',
+    default='',
+    metavar='AUTH_AK_FOR_QINIU',
+    help="""your ak""")
+
+auth.add_argument(
+    '--sk',
+    default='',
+    metavar='AUTH_SK_FOR_QINIU',
+    help="""your sk""")
+
+auth.add_argument(
+    '--typo',
+    default='',
+    metavar='AUTH_QINIU_TYPE_FOR_QINIU',
+    help="""qiniu/mac OR pandora/mac OR qbox/mac""")
+
 #######################################################################
 # Network
 #######################################################################

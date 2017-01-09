@@ -25,6 +25,8 @@ Development Purpose Only: Add --auth-qiniu
         "auth": "pandora/mac"
     }
 
+* Alternatively Usage: ``http --ak=your_ak --sk=your_sk --typo=<qbox/mac|qiniu-mac|pandora/mac> GET|POST https://some-api-host/path/to/api``
+
 ****************************************
 HTTPie: a CLI, cURL-like tool for humans
 ****************************************
