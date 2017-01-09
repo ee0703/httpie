@@ -493,7 +493,7 @@ auth.add_argument(
     help="""your sk""")
 
 auth.add_argument(
-    '--typo',
+    '--auth-qiniu-type',
     default='',
     metavar='AUTH_QINIU_TYPE_FOR_QINIU',
     help="""qiniu/mac OR pandora/mac OR qbox/mac""")
